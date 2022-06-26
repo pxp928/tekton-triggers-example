@@ -6,5 +6,7 @@ spec:
   params:
     - name: gitrepositoryurl
       value: $(body.repository.clone_url)
+    - name: namespace
+      value: default
     - name: gitrevision
       value: $(body.pull_request.head.sha)

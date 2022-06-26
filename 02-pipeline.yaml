@@ -1,32 +1,101 @@
+---
+# The getting-started Pipeline will run through several tasks:
+# - source is pulled from git
+# - source is built into an image by img
+# - image output is pushed to ECR
+# - cloudevent emitted
 apiVersion: tekton.dev/v1beta1
 kind: Pipeline
 metadata:
-  name: github-pr-pipeline
+  name: getting-started-pipeline
+  namespace: default
 spec:
   resources:
-    - name: source
+    - name: source-repo
       type: git
+    - name: image-source
+      type: image
   tasks:
-    - name: test
+    - name: build-docker-image
       taskRef:
-        name: test
+        name: build-docker-image
+      params:
+        - name: pathToContext
+          value: /workspace/source-repo
       resources:
         inputs:
-          - name: source
-            resource: source
+          - name: source-repo
+            resource: source-repo
+        outputs:
+          - name: builtImage
+            resource: image-source
+    - name: deploy-locally
+      taskRef:
+        name: deploy-locally
+      resources:
+        inputs:
+          - name: image-source
+            resource: image-source
+            from:
+              - build-docker-image
 ---
 apiVersion: tekton.dev/v1beta1
 kind: Task
 metadata:
-  name: test
+  name: deploy-locally
+  namespace: default
 spec:
   resources:
     inputs:
-      - name: source
-        type: git
+      - name: image-source
+        type: image
   steps:
-    - name: run-test
-      image: golang:1.16.3-alpine3.13
-      workingDir: /workspace/source
-      command: ["go"]
-      args: ["test"]
+    - name: run-kubectl
+      image: lachlanevenson/k8s-kubectl
+      command: ["kubectl"]
+      args:
+        - "run"
+        - "tekton-triggers-built-me"
+        - "--image"
+        - "$(resources.inputs.image-source.url)"
+        - "--env=PORT=8080"
+---
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: build-docker-image
+  namespace: default
+  annotations:
+    tekton.dev/pipelines.minVersion: "0.17.0"
+    tekton.dev/categories: Image Build
+    tekton.dev/tags: image-build
+    tekton.dev/displayName: "Build and upload container image using Kaniko"
+    tekton.dev/platforms: "linux/amd64"
+spec:
+  params:
+  - name: pathToContext
+    description:
+      The build directory used by img
+    default: /workspace/source-repo
+  - name: pathToDockerFile
+    type: string
+    description: The path to the dockerfile to build
+    default: $(resources.inputs.source-repo.path)/Dockerfile
+  resources:
+    inputs:
+      - name: source-repo
+        type: git
+    outputs:
+      - name: builtImage
+        type: image
+  steps:
+    - name: build-and-push
+      image: gcr.io/kaniko-project/executor:v1.5.1@sha256:c6166717f7fe0b7da44908c986137ecfeab21f31ec3992f6e128fff8a94be8a5
+      command:
+        - /kaniko/executor
+      args:
+        - --dockerfile=$(params.pathToDockerFile)
+        - --destination=$(resources.outputs.builtImage.url)
+        - --context=$(params.pathToContext)
+        - --customPlatform=linux/amd64
+---

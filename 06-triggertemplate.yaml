@@ -9,20 +9,30 @@ spec:
       default: master
     - name: gitrepositoryurl
       description: The git repository url ("https://github.com/foo/bar.git")
+    - name: namespace
+      description: The namespace to create the resources
   resourcetemplates:
     - apiVersion: tekton.dev/v1beta1
       kind: PipelineRun
       metadata:
         generateName: github-pr-pipeline-run-
+        namespace: $(tt.params.namespace)
       spec:
+        serviceAccountName: tekton-triggers-example-sa
         pipelineRef:
-          name: github-pr-pipeline
+          name: getting-started-pipeline
         resources:
-          - name: source
+          - name: source-repo
             resourceSpec:
               type: git
               params:
-                - name: revision
-                  value: $(tt.params.gitrevision)
+              - name: revision
+                value: $(tt.params.gitrevision)
+              - name: url
+                value: $(tt.params.gitrepositoryurl)
+          - name: image-source
+            resourceSpec:
+              type: image
+              params:
                 - name: url
-                  value: $(tt.params.gitrepositoryurl)
+                  value: ttl.sh/trigger-pxp928:1h 
