@@ -5,7 +5,7 @@ metadata:
 spec:
   params:
     - name: gitrepositoryurl
-      value: $(body.repository.clone_url)
+      value: $(body.repository.ssh_url)
     - name: namespace
       value: default
     - name: gitrevision

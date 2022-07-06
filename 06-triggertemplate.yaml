@@ -18,21 +18,32 @@ spec:
         generateName: github-pr-pipeline-run-
         namespace: $(tt.params.namespace)
       spec:
-        serviceAccountName: tekton-triggers-example-sa
         pipelineRef:
-          name: getting-started-pipeline
-        resources:
-          - name: source-repo
-            resourceSpec:
-              type: git
-              params:
-              - name: revision
-                value: $(tt.params.gitrevision)
-              - name: url
-                value: $(tt.params.gitrepositoryurl)
-          - name: image-source
-            resourceSpec:
-              type: image
-              params:
-                - name: url
-                  value: ttl.sh/trigger-pxp928:1h 
+          name: buildpacks
+        params:
+          - name: BUILDER_IMAGE
+            value: docker.io/heroku/buildpacks:20@sha256:b9b1f20eb0f01c56803ef0463160acb646ede6cf6e8979f527adb0902679599f
+          - name: TRUST_BUILDER
+            value: "true"
+          - name: APP_IMAGE
+            value: ttl.sh/python-hello
+          - name: imageUrl
+            value: ttl.sh/python-hello
+          - name: imageTag
+            value: latest
+          - name: SOURCE_URL
+            value: $(tt.params.gitrepositoryurl)
+          - name: SOURCE_REFERENCE
+            value: $(tt.params.gitrevision)
+          - name: SOURCE_SUBPATH
+            value: ""
+          - name: CACHE_IMAGE
+            value: ttl.sh/python-hello-cache
+        serviceAccountName: build-bot
+        workspaces:
+          - name: source-ws
+            subPath: source
+            persistentVolumeClaim:
+              claimName: cache-image-pipelinerun-source-ws-pvc 
+          - name: cache-ws
+            emptyDir: {}
