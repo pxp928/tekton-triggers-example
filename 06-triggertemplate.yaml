@@ -22,23 +22,17 @@ spec:
           name: buildpacks
         params:
           - name: BUILDER_IMAGE
-            value: docker.io/heroku/buildpacks:20@sha256:b9b1f20eb0f01c56803ef0463160acb646ede6cf6e8979f527adb0902679599f
+            value: gcr.io/buildpacks/builder:v1
           - name: TRUST_BUILDER
             value: "true"
           - name: APP_IMAGE
             value: ttl.sh/python-hello
-          - name: imageUrl
-            value: ttl.sh/python-hello
-          - name: imageTag
-            value: latest
           - name: SOURCE_URL
             value: $(tt.params.gitrepositoryurl)
           - name: SOURCE_REFERENCE
             value: $(tt.params.gitrevision)
           - name: SOURCE_SUBPATH
             value: ""
-          - name: CACHE_IMAGE
-            value: ttl.sh/python-hello-cache
         serviceAccountName: build-bot
         workspaces:
           - name: source-ws
