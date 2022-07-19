@@ -9,20 +9,35 @@ spec:
       default: master
     - name: gitrepositoryurl
       description: The git repository url ("https://github.com/foo/bar.git")
+    - name: namespace
+      description: The namespace to create the resources
   resourcetemplates:
     - apiVersion: tekton.dev/v1beta1
       kind: PipelineRun
       metadata:
         generateName: github-pr-pipeline-run-
+        namespace: $(tt.params.namespace)
       spec:
         pipelineRef:
-          name: github-pr-pipeline
-        resources:
-          - name: source
-            resourceSpec:
-              type: git
-              params:
-                - name: revision
-                  value: $(tt.params.gitrevision)
-                - name: url
-                  value: $(tt.params.gitrepositoryurl)
+          name: buildpacks
+        params:
+          - name: BUILDER_IMAGE
+            value: gcr.io/buildpacks/builder:v1
+          - name: TRUST_BUILDER
+            value: "true"
+          - name: APP_IMAGE
+            value: ttl.sh/python-hello
+          - name: SOURCE_URL
+            value: $(tt.params.gitrepositoryurl)
+          - name: SOURCE_REFERENCE
+            value: $(tt.params.gitrevision)
+          - name: SOURCE_SUBPATH
+            value: ""
+        serviceAccountName: build-bot
+        workspaces:
+          - name: source-ws
+            subPath: source
+            persistentVolumeClaim:
+              claimName: cache-image-pipelinerun-source-ws-pvc 
+          - name: cache-ws
+            emptyDir: {}

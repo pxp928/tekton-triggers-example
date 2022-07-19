@@ -3,6 +3,9 @@ kind: EventListener
 metadata:
   name: github-pr
 spec:
+  resources:
+    kubernetesResource:
+      serviceType: NodePort
   serviceAccountName: tekton-triggers-example-sa
   triggers:
     - name: github-listener
