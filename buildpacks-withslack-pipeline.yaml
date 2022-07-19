@@ -132,7 +132,11 @@ spec:
               - name: multi-manager
                 image: "$(params.APP_IMAGE)"
   finally:
-    - name: get-pipeline-status
+    - name: get-fail-status
+      when:
+        - input: $(tasks.status)
+          operator: in
+          values: [ "Failed", "None" ]
       taskRef:
         name: send-to-webhook-slack
       workspaces:
@@ -143,3 +147,22 @@ spec:
           value: slack-webhook-secret
         - name: ARGS
           value: ["pr", "describe", "--last"]
+        - name: message
+          value: "PIPELINE FAILED"
+    - name: get-success-status
+      when:
+        - input: $(tasks.status)
+          operator: in
+          values: [ "Succeeded", "Completed"]
+      taskRef:
+        name: send-to-webhook-slack
+      workspaces:
+        - name: status
+          workspace: status-ws
+      params:
+        - name: webhook-secret
+          value: slack-webhook-secret
+        - name: ARGS
+          value: ["pr", "describe", "--last"]
+        - name: message
+          value: "PIPELINE SUCCEEDED"
