@@ -59,13 +59,18 @@ spec:
       if [ "$(workspaces.kubeconfig.bound)" == "true" ] && [[ -e $(workspaces.kubeconfig.path)/kubeconfig ]]; then
         export KUBECONFIG=$(workspaces.kubeconfig.path)/kubeconfig
       fi
-      $(params.SCRIPT) > pr-status.txt
+      $(params.SCRIPT) | tee pr-status.txt
     args: ["$(params.ARGS)"]
   - name: post
     image: docker.io/curlimages/curl:7.70.0@sha256:031df77a11e5edded840bc761a845eab6e3c2edee22669fb8ad6d59484b6a1c4 #tag: 7.70.0
     workingDir: $(workspaces.status.path)
     script: |
       #!/usr/bin/env sh
+      MESSAGE=$(echo "${MESSAGE}" | sed -e 's/\"/\\\\"/g')
+      BOTNAME=$(echo "${BOTNAME}" | sed -e 's/\"/\\\\"/g')
+      JSON="{\"text\": \"${MESSAGE}\", \"username\": \"${BOTNAME}\", \"icon_emoji\": \"${EMOJI}\"}"
+      curl -X POST -H 'Content-Type: application/json' --data "${JSON}" "${URL}"
+
       MESSAGE=$(cat pr-status.txt | sed -e 's/\"/\\\\"/g')
       BOTNAME=$(echo "${BOTNAME}" | sed -e 's/\"/\\\\"/g')
       JSON="{\"text\": \"${MESSAGE}\", \"username\": \"${BOTNAME}\", \"icon_emoji\": \"${EMOJI}\"}"
